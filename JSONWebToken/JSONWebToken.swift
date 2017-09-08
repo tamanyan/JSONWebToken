@@ -8,7 +8,7 @@
 import Foundation
 
 public struct JSONWebToken {
-    
+
     public indirect enum Error : Swift.Error {
         case badTokenStructure
         case cannotDecodeBase64Part(JSONWebToken.Part,String)
@@ -37,12 +37,15 @@ public struct JSONWebToken {
         }
         
         var jsonPayload : [String : Any]
+
         fileprivate init(jsonPayload : [String : Any]) {
             self.jsonPayload = jsonPayload
         }
+
         public init() {
             jsonPayload = Dictionary()
         }
+
         public subscript(key : String) -> Any? {
             get {
                 let result = jsonPayload[key]
@@ -63,6 +66,7 @@ public struct JSONWebToken {
                 }
             }
         }
+
         fileprivate subscript(registeredClaim : RegisteredClaim) -> Any? {
             get {
                 return self[registeredClaim.rawValue]
@@ -71,6 +75,7 @@ public struct JSONWebToken {
                 return self[registeredClaim.rawValue] = newValue
             }
         }
+
         public var issuer : String? {
             get {
                 return (try? self[.Issuer].map(RegisteredClaimValidator.issuer.transform)) ?? nil
@@ -79,6 +84,7 @@ public struct JSONWebToken {
                 self[.Issuer] = newValue
             }
         }
+
         public var subject : String? {
             get {
                 return (try? self[.Subject].map(RegisteredClaimValidator.subject.transform)) ?? nil
@@ -87,6 +93,7 @@ public struct JSONWebToken {
                 self[.Subject] = newValue
             }
         }
+
         public var audience : [String] {
             get {
                 return (try? self[.Audience].map(RegisteredClaimValidator.audience.transform) ?? []) ?? []
@@ -102,9 +109,11 @@ public struct JSONWebToken {
                 }
             }
         }
+
         fileprivate static func jsonClaimValueFromDate(_ date : Date?) -> NSNumber? {
             return date.map { NSNumber(value: Int64($0.timeIntervalSince1970)) }
         }
+
         public var expiration : Date? {
             get {
                 return (try? self[.ExpirationTime].map(RegisteredClaimValidator.expiration.transform)) ?? nil
@@ -177,6 +186,7 @@ public struct JSONWebToken {
 
         self.payload = Payload(jsonPayload: jsonPayload)
     }
+
     fileprivate static func jwtJSONFromData(_ data : Data, part : JSONWebToken.Part) throws -> [String : Any] {
         let json : Any
         do {
@@ -209,7 +219,25 @@ public struct JSONWebToken {
         self.base64Parts = (headerBase64,payloadBase64,signatureBase64)
     }
     
-    
+
+    public init(header : [String: Any] , payload : Payload, signer : TokenSigner? = nil) throws {
+        self.signatureAlgorithm = signer?.signatureAlgorithm ?? SignatureAlgorithm.none
+        self.payload = payload
+
+        let headerBase64 = try JSONSerialization.data(withJSONObject: header, options: []).jwt_base64URLEncodedStringWithOptions([])
+        let payloadBase64 = try JSONSerialization.data(withJSONObject: payload.jsonPayload, options: []).jwt_base64URLEncodedStringWithOptions([])
+
+        let signatureInput = headerBase64 + "." + payloadBase64
+
+        let signature = try signer.map {
+            try $0.sign(signatureInput.data(using: String.Encoding.utf8)!)
+            } ?? Data()
+
+        let signatureBase64 = signature.jwt_base64URLEncodedStringWithOptions([])
+
+        self.base64Parts = (headerBase64,payloadBase64,signatureBase64)
+    }
+
     public func decodedDataForPart(_ part : Part) -> Data {
         switch part {
         case .header:
