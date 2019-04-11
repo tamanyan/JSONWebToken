@@ -34,10 +34,10 @@ public enum SignatureAlgorithm {
     case rsassa_PSS(HashFunction) //RSASSA-PSS -> PSXXX
     
     public init(name : String) throws {
-        guard name.characters.count > 0 else {throw JSONWebToken.Error.invalidSignatureAlgorithm(name)}
+        guard name.count > 0 else {throw JSONWebToken.Error.invalidSignatureAlgorithm(name)}
         guard name.lowercased() != "none" else { self = .none; return }
         
-        let prefixIndex = name.characters.index(name.startIndex, offsetBy: 2)
+        let prefixIndex = name.index(name.startIndex, offsetBy: 2)
         let prefix = name.substring(to: prefixIndex)
         let suffix = name.substring(from: prefixIndex)
         
