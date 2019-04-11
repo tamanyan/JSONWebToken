@@ -53,7 +53,7 @@ public extension RSAKey {
         case notBase64Readable
         case badKeyFormat
     }
-    @discardableResult public static func registerOrUpdateKey(_ keyData : Data, tag : String) throws -> RSAKey {
+    @discardableResult static func registerOrUpdateKey(_ keyData : Data, tag : String) throws -> RSAKey {
         let key : SecKey? = try {
             if let existingData = try getKeyData(tag) {
                 let newData = keyData.dataByStrippingX509Header()
@@ -71,11 +71,11 @@ public extension RSAKey {
             throw KeyUtilError.badKeyFormat
         }
     }
-    @discardableResult public static func registerOrUpdateKey(modulus: Data, exponent : Data, tag : String) throws -> RSAKey {
+    @discardableResult static func registerOrUpdateKey(modulus: Data, exponent : Data, tag : String) throws -> RSAKey {
         let combinedData = Data(modulus: modulus, exponent: exponent)
         return try RSAKey.registerOrUpdateKey(combinedData, tag : tag)
     }
-    @discardableResult public static func registerOrUpdatePublicPEMKey(_ keyData : Data, tag : String) throws -> RSAKey {
+    @discardableResult static func registerOrUpdatePublicPEMKey(_ keyData : Data, tag : String) throws -> RSAKey {
         guard let stringValue = String(data: keyData, encoding: String.Encoding.utf8) else {
             throw KeyUtilError.notStringReadable
         }
@@ -106,7 +106,7 @@ public extension RSAKey {
         return try RSAKey.registerOrUpdateKey(decodedKeyData, tag: tag)
     }
     static func registeredKeyWithTag(_ tag : String) -> RSAKey? {
-        return ((try? getKey(tag)) ?? nil).map(RSAKey.init)
+        return ((((try? getKey(tag)) as SecKey??)) ?? nil).map(RSAKey.init)
     }
     static func removeKeyWithTag(_ tag : String) {
         do {
